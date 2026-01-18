@@ -1,18 +1,11 @@
 from pydub import AudioSegment
+from pydub.playback import play
 import time, simpleaudio as sa
 
 class Player():
     def __init__(self, music_queue):
         self.music_queue = music_queue
-
-        if self.music_queue:
-            self.current_song = self.music_queue.pop(0)
-            self.audio_stream = AudioSegment.from_file(self.current_song.get_file_path())
-        else:
-            self.current_song = None
-            self.audio_stream = None
-
-        self.play_index = 0
+        self.elapsed = 0
         self.playback_start = 0
         self.playback_history = []
         self.play_obj = None
@@ -25,9 +18,28 @@ class Player():
         return len(self.music_queue)
 
     def play(self):
-        if not self.current_song:
-            return
+        current_song = self.music_queue.pop(0)
+        audio_stream = AudioSegment.from_file(current_song.get_file_path())
 
-        print("Now Playing:", self.current_song.get_title())
+        print("Now Playing:", current_song.get_title())
+        self.is_paused = False
 
-        audio = self.audio_stream[self.playback_start:]
+        wave_obj = sa.WaveObject(
+            audio_data = audio_stream.raw_data,
+            num_channels = audio_stream.channels,
+            bytes_per_sample = audio_stream.sample_width,
+            sample_rate = audio_stream.frame_rate
+        )
+
+        self.play_obj = wave_obj.play()
+        self.play_obj.wait_done()
+
+    def get_play_obj(self):
+        return self.play_obj
+
+    def pause(self):
+        if self.play_obj and self.play_obj.is_playing():
+            print('Pausing playback...')
+            self.playback_start = self.elapsed
+            self.play_obj.stop()
+            self.is_paused = True

@@ -1,4 +1,5 @@
-import Song, json, os
+from .Song import Song
+import json, os
 
 LIBRARY_DATA_FILENAME = "library_data.json"
 
