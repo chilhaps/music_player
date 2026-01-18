@@ -2,6 +2,7 @@ from player_core.Song import Song
 from player_core.Library import Library
 from player_core.Player import Player
 from tinytag import TinyTag
+import time
 import os
 
 if __name__ == "__main__":
@@ -19,5 +20,7 @@ if __name__ == "__main__":
     player = Player(test_library.get_songs())
 
     player.play()
-    
+    time.sleep(5)
+    player.stop()
+
     print('Test complete.')
