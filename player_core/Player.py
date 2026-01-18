@@ -1,5 +1,5 @@
 from pydub import AudioSegment
-import time, simpleaudio as sa
+import simpleaudio as sa, soundfile as sf
 
 class Player():
     def __init__(self, music_queue):
@@ -22,16 +22,21 @@ class Player():
             return
         
         current_song = self.music_queue.pop(0)
-        audio_stream = AudioSegment.from_file(current_song.get_file_path())
+        # audio_stream = AudioSegment.from_file(current_song.get_file_path())
+        audio_data, sample_rate = sf.read(current_song.get_file_path(), dtype='float32')
+        audio_sample_width = 4
+        audio_channels = audio_data.shape[1] if len(audio_data.shape) > 1 else 1
+
+        print('Sample Rate: {}, Sample Width: {}, Channels: {}'.format(sample_rate, audio_sample_width, audio_channels))
 
         print("Now Playing:", current_song.get_title())
         self.is_playing = True
 
         wave_obj = sa.WaveObject(
-            audio_data = audio_stream.raw_data,
-            num_channels = audio_stream.channels,
-            bytes_per_sample = audio_stream.sample_width,
-            sample_rate = audio_stream.frame_rate
+            audio_data = audio_data,
+            num_channels = audio_channels,
+            bytes_per_sample = audio_sample_width,
+            sample_rate = sample_rate
         )
 
         self.play_obj = wave_obj.play()
