@@ -20,12 +20,3 @@ class Song():
     
     def get_file_path(self):
         return self.file_path
-    
-    def get_is_playable(self):
-        # Here we can add logic to determine if the song is playable
-        # For simplicity, we'll assume all songs are playable
-        return True
-    
-    def get_format(self):
-        # Extract file format from the file path
-        return self.file_path.split('.')[-1]
