@@ -22,14 +22,13 @@ class Player():
             return
         
         current_song = self.music_queue.pop(0)
-        # audio_stream = AudioSegment.from_file(current_song.get_file_path())
+        
         audio_data, sample_rate = sf.read(current_song.get_file_path(), dtype='float32')
         audio_sample_width = 4
         audio_channels = audio_data.shape[1] if len(audio_data.shape) > 1 else 1
 
         print('Sample Rate: {}, Sample Width: {}, Channels: {}'.format(sample_rate, audio_sample_width, audio_channels))
 
-        print("Now Playing:", current_song.get_title())
         self.is_playing = True
 
         wave_obj = sa.WaveObject(

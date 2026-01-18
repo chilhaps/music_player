@@ -15,7 +15,7 @@ if __name__ == "__main__":
     test_library = Library()
     test_library.add_song(test_song)
 
-    print('Attempting to play {} by {}'.format(test_song.get_title(), test_song.get_artist()))
+    print('Now Playing: {} by {}'.format(test_song.get_title(), test_song.get_artist()))
 
     player = Player(test_library.get_songs())
 
