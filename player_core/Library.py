@@ -1,48 +1,61 @@
 from .Song import Song
-import json, os
+from tinytag import TinyTag
+import sqlite3, os
 
-LIBRARY_DATA_FILENAME = "library_data.json"
+LIBRARY_DATA_FILENAME = "library_data.db"
 
 class Library:
     def __init__(self):
-        self.songs = []
+        self.library_data_path = os.path.join(os.getcwd(), 'db', LIBRARY_DATA_FILENAME)
+        self.conn = sqlite3.connect(self.library_data_path)
+        self.cursor = self.conn.cursor()
 
-        if os.path.exists(os.path.join(os.getcwd(), LIBRARY_DATA_FILENAME)):
-            self.load_library()
+        self.cursor.execute('''
+                                CREATE TABLE IF NOT EXISTS songs (
+                                    id INTEGER PRIMARY KEY NOT NULL,
+                                    title TEXT,
+                                    artist TEXT,
+                                    album TEXT,
+                                    duration REAL,
+                                    file_path TEXT NOT NULL UNIQUE
+                            );
+                            ''')
 
-    def load_library(self):
+    def initialize_library(self, library_path=None):
+        if not library_path:
+            print("No library path provided.")
+            return
+
+        file_paths = []
+
         try:
-            with open(os.path.join(os.getcwd(), LIBRARY_DATA_FILENAME), 'r') as f:
-                data = json.load(f)
-                for song_data in data:
-                    song = Song(
-                        title=song_data['title'],
-                        artist=song_data['artist'],
-                        album=song_data['album'],
-                        duration=song_data['duration'],
-                        file_path=song_data['file_path']
-                    )
-                    self.songs.append(song)
-        except FileNotFoundError:
-            self.songs = []
-    
-    def save_library(self):
-        data = []
-        for song in self.songs:
-            song_data = {
-                'title': song.get_title(),
-                'artist': song.get_artist(),
-                'album': song.get_album(),
-                'duration': song.get_duration(),
-                'file_path': song.get_file_path()
-            }
-            data.append(song_data)
-        
-        with open(os.path.join(os.getcwd(), LIBRARY_DATA_FILENAME), 'w') as f:
-            json.dump(data, f, indent=4)
+            for dirpath, _dirnames, filenames in os.walk(library_path, topdown=False):
+                file_paths.extend([os.path.join(dirpath, filename) for filename in filenames])
+        except Exception as e:
+            print(f"Error scanning directory: {e}")
 
-    def add_song(self, song):
-        self.songs.append(song)
+        for file_path in file_paths:
+            if not file_path.lower().endswith(TinyTag.SUPPORTED_FILE_EXTENSIONS):
+                continue
 
-    def get_songs(self):
-        return self.songs
+            try:
+                self.add_song(file_path)
+            except Exception as e:
+                print(f"Error adding song {file_path}: {e}")
+
+    def add_song(self, song_path):
+        tag: TinyTag = TinyTag.get(song_path)
+
+        song_obj = Song(tag.title, tag.artist, tag.album, tag.duration, song_path)
+
+        self.cursor.execute("INSERT INTO songs (title, artist, album, duration, file_path) VALUES (?, ?, ?, ?, ?)",
+                            (song_obj.get_title(), song_obj.get_artist(), song_obj.get_album(), song_obj.get_duration(), song_obj.get_file_path()))
+        self.conn.commit()
+
+    def get_all_songs(self):
+        songs = []
+        self.cursor.execute("SELECT * FROM songs")
+        for i in self.cursor.fetchall():
+            song_obj = Song(i[1], i[2], i[3], i[4], i[5])
+            songs.append(song_obj)
+        return songs
