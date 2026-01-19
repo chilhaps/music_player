@@ -1,26 +1,23 @@
-from player_core.Song import Song
 from player_core.Library import Library
 from player_core.Player import Player
-from tinytag import TinyTag
 import time
 import os
 
 if __name__ == "__main__":
-    test_filepath = r'{}'.format(input('Enter path to audio file: ').strip())
-    test_filepath = os.path.abspath(test_filepath)
+    test_library_path = r'{}'.format(input('Enter path to music library: ').strip())
+    test_library_path = os.path.abspath(test_library_path)
 
-    tag: TinyTag = TinyTag.get(test_filepath)
-
-    test_song = Song(tag.title, tag.artist, tag.album, tag.duration, test_filepath)
     test_library = Library()
-    test_library.add_song(test_song)
+    test_library.initialize_library(test_library_path)
+    test_queue = test_library.get_all_songs()
+    print('Total songs in library: {}'.format(len(test_queue)))
 
-    print('Now Playing: {} by {}'.format(test_song.get_title(), test_song.get_artist()))
-
-    player = Player(test_library.get_songs())
-
+    player = Player(test_queue)
     player.play()
+
+    print('Now Playing: {} by {}'.format(player.get_current_song().get_title(), player.get_current_song().get_artist()))
     time.sleep(5)
+
     player.stop()
 
     print('Test complete.')
