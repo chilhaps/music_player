@@ -1,4 +1,3 @@
-from pydub import AudioSegment
 import simpleaudio as sa, soundfile as sf
 
 class Player():
@@ -8,6 +7,7 @@ class Player():
         self.playback_start = 0
         self.playback_history = []
         self.play_obj = None
+        self.current_song = None
         self.is_playing = False
         
     def set_music_queue(self, music_queue):
@@ -21,9 +21,9 @@ class Player():
             self.is_playing = False
             return
         
-        current_song = self.music_queue.pop(0)
-        
-        audio_data, sample_rate = sf.read(current_song.get_file_path(), dtype='float32')
+        self.current_song = self.music_queue.pop(0)
+
+        audio_data, sample_rate = sf.read(self.current_song.get_file_path(), dtype='float32')
         audio_sample_width = 4
         audio_channels = audio_data.shape[1] if len(audio_data.shape) > 1 else 1
 
@@ -42,6 +42,9 @@ class Player():
 
     def get_play_obj(self):
         return self.play_obj
+    
+    def get_current_song(self):
+        return self.current_song
 
     def stop(self):
         self.playback_history = []
