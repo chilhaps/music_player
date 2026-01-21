@@ -2,3 +2,4 @@ player_core/__pycache__/Library.cpython-313.pyc
 player_core/__pycache__/Player.cpython-313.pyc
 player_core/__pycache__/Song.cpython-313.pyc
 .gitignore
+db/*
