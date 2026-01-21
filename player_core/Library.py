@@ -6,6 +6,9 @@ LIBRARY_DATA_FILENAME = "library_data.db"
 
 class Library:
     def __init__(self):
+        if not os.path.exists(os.path.join(os.getcwd(), 'db')):
+            os.mkdir('db')
+            
         self.library_data_path = os.path.join(os.getcwd(), 'db', LIBRARY_DATA_FILENAME)
         self.conn = sqlite3.connect(self.library_data_path)
         self.cursor = self.conn.cursor()
