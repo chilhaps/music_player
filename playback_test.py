@@ -14,10 +14,7 @@ if __name__ == "__main__":
 
     player = Player(test_queue)
     player.play()
-
-    print('Now Playing: {} by {}'.format(player.get_current_song().get_title(), player.get_current_song().get_artist()))
-    time.sleep(5)
-
+    #print('Now Playing: {} by {}'.format(player.get_current_song().get_title(), player.get_current_song().get_artist()))
+    time.sleep(20)
     player.stop()
-
     print('Test complete.')
