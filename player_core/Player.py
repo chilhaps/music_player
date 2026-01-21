@@ -1,4 +1,4 @@
-import simpleaudio as sa, soundfile as sf
+import simpleaudio as sa, soundfile as sf, sounddevice as sd
 
 class Player():
     def __init__(self, music_queue):
@@ -25,12 +25,13 @@ class Player():
 
         audio_data, sample_rate = sf.read(self.current_song.get_file_path(), dtype='float32')
         audio_sample_width = 4
-        audio_channels = audio_data.shape[1] if len(audio_data.shape) > 1 else 1
+        audio_channels = audio_data.shape[1]
 
         print('Sample Rate: {}, Sample Width: {}, Channels: {}'.format(sample_rate, audio_sample_width, audio_channels))
 
         self.is_playing = True
 
+        '''
         wave_obj = sa.WaveObject(
             audio_data = audio_data,
             num_channels = audio_channels,
@@ -39,6 +40,9 @@ class Player():
         )
 
         self.play_obj = wave_obj.play()
+        '''
+
+        sd.play(audio_data, sample_rate)
 
     def get_play_obj(self):
         return self.play_obj
