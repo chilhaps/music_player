@@ -3,6 +3,16 @@ from tinytag import TinyTag
 import sqlite3, os
 
 LIBRARY_DATA_FILENAME = "library_data.db"
+SONGS_TABLE_CREATION_QUERY = '''
+                                CREATE TABLE IF NOT EXISTS songs (
+                                    id INTEGER PRIMARY KEY NOT NULL,
+                                    title TEXT,
+                                    artist TEXT,
+                                    album TEXT,
+                                    duration REAL,
+                                    file_path TEXT NOT NULL UNIQUE
+                                );
+                            '''
 
 class Library:
     def __init__(self):
@@ -13,16 +23,7 @@ class Library:
         self.conn = sqlite3.connect(self.library_data_path)
         self.cursor = self.conn.cursor()
 
-        self.cursor.execute('''
-                                CREATE TABLE IF NOT EXISTS songs (
-                                    id INTEGER PRIMARY KEY NOT NULL,
-                                    title TEXT,
-                                    artist TEXT,
-                                    album TEXT,
-                                    duration REAL,
-                                    file_path TEXT NOT NULL UNIQUE
-                            );
-                            ''')
+        self.cursor.execute(SONGS_TABLE_CREATION_QUERY)
 
     def initialize_library(self, library_path=None):
         if not library_path:
