@@ -25,15 +25,15 @@ class Library:
 
         self.cursor.execute(SONGS_TABLE_CREATION_QUERY)
 
-    def initialize_library(self, library_path=None):
-        if not library_path:
-            print("No library path provided.")
+    def initialize_database(self, database_path=None):
+        if not database_path:
+            print("No database path provided.")
             return
 
         file_paths = []
 
         try:
-            for dirpath, _dirnames, filenames in os.walk(library_path, topdown=False):
+            for dirpath, _dirnames, filenames in os.walk(database_path, topdown=False):
                 file_paths.extend([os.path.join(dirpath, filename) for filename in filenames])
         except Exception as e:
             print(f"Error scanning directory: {e}")
@@ -63,3 +63,7 @@ class Library:
             song_obj = Song(i[1], i[2], i[3], i[4], i[5])
             songs.append(song_obj)
         return songs
+    
+    def clear_database(self):
+        self.cursor.execute("DELETE FROM songs")
+        self.conn.commit()
