@@ -1,5 +1,7 @@
 import threading, queue, soundfile as sf, sounddevice as sd
 
+# TODO: Restructure code, a lot of repetition between basic input and stream loops
+
 class Player():
     def __init__(self, music_queue):
         self.music_queue = music_queue
