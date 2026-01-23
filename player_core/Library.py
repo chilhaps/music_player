@@ -3,19 +3,22 @@ from tinytag import TinyTag
 import sqlite3, os
 
 LIBRARY_DATA_FILENAME = "library_data.db"
-SONGS_TABLE_CREATION_QUERY = '''
-                                CREATE TABLE IF NOT EXISTS songs (
-                                    id INTEGER PRIMARY KEY NOT NULL,
-                                    album TEXT,
-                                    albumartist TEXT,
-                                    artist TEXT,
-                                    disc INTEGER,
-                                    title TEXT,
-                                    track INTEGER,
-                                    duration REAL,
-                                    file_path TEXT NOT NULL UNIQUE
-                                );
-                            '''
+CREATE_SONGS_TABLE_QUERY = '''CREATE TABLE IF NOT EXISTS songs (
+                                id INTEGER PRIMARY KEY NOT NULL,
+                                album TEXT,
+                                albumartist TEXT,
+                                artist TEXT,
+                                disc INTEGER,
+                                title TEXT,
+                                track INTEGER,
+                                duration REAL,
+                                file_path TEXT NOT NULL UNIQUE
+                            );'''
+INSERT_SONG_INTO_SONGS_TABLE_QUERY = '''INSERT INTO songs (album, albumartist, artist, disc, title, track, duration, file_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'''
+SELECT_ALL_SONGS_QUERY = '''SELECT * FROM songs'''
+CLEAR_SONGS_TABLE_QUERY = '''DELETE FROM songs'''
+SELECT_REMAINING_TRACKS_IN_ALBUM_QUERY = '''SELECT * FROM songs
+                                            WHERE album = \'{}\' AND track >= {};'''
 
 class Library:
     def __init__(self):
@@ -26,7 +29,7 @@ class Library:
         self.conn = sqlite3.connect(self.library_data_path)
         self.cursor = self.conn.cursor()
 
-        self.cursor.execute(SONGS_TABLE_CREATION_QUERY)
+        self.cursor.execute(CREATE_SONGS_TABLE_QUERY)
 
     def initialize_database(self, database_path=None):
         if not database_path:
@@ -62,7 +65,7 @@ class Library:
                         tag.duration,
                         song_path)
 
-        self.cursor.execute("INSERT INTO songs (album, albumartist, artist, disc, title, track, duration, file_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        self.cursor.execute(INSERT_SONG_INTO_SONGS_TABLE_QUERY  ,
                             (song_obj.get_album(),
                              song_obj.get_albumartist(),
                              song_obj.get_artist(),
@@ -76,12 +79,21 @@ class Library:
 
     def get_all_songs(self):
         songs = []
-        self.cursor.execute("SELECT * FROM songs")
+        self.cursor.execute(SELECT_ALL_SONGS_QUERY)
         for i in self.cursor.fetchall():
             song_obj = Song(i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8])
             songs.append(song_obj)
         return songs
     
     def clear_database(self):
-        self.cursor.execute("DELETE FROM songs")
+        self.cursor.execute(CLEAR_SONGS_TABLE_QUERY)
         self.conn.commit()
+
+    def get_remaining_songs_from_album(self, album_name='', starting_track_number=0):
+        songs = []
+        self.cursor.execute(SELECT_REMAINING_TRACKS_IN_ALBUM_QUERY.format(album_name, starting_track_number))
+        for i in self.cursor.fetchall():
+            song_obj = Song(i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8])
+            songs.append(song_obj)
+        return songs
+    
