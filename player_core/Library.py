@@ -6,9 +6,12 @@ LIBRARY_DATA_FILENAME = "library_data.db"
 SONGS_TABLE_CREATION_QUERY = '''
                                 CREATE TABLE IF NOT EXISTS songs (
                                     id INTEGER PRIMARY KEY NOT NULL,
-                                    title TEXT,
-                                    artist TEXT,
                                     album TEXT,
+                                    albumartist TEXT,
+                                    artist TEXT,
+                                    disc INTEGER,
+                                    title TEXT,
+                                    track INTEGER,
                                     duration REAL,
                                     file_path TEXT NOT NULL UNIQUE
                                 );
@@ -50,17 +53,32 @@ class Library:
     def add_song(self, song_path):
         tag: TinyTag = TinyTag.get(song_path)
 
-        song_obj = Song(tag.title, tag.artist, tag.album, tag.duration, song_path)
+        song_obj = Song(tag.album,
+                        tag.albumartist,
+                        tag.artist,
+                        tag.disc,
+                        tag.title,
+                        tag.track,
+                        tag.duration,
+                        song_path)
 
-        self.cursor.execute("INSERT INTO songs (title, artist, album, duration, file_path) VALUES (?, ?, ?, ?, ?)",
-                            (song_obj.get_title(), song_obj.get_artist(), song_obj.get_album(), song_obj.get_duration(), song_obj.get_file_path()))
+        self.cursor.execute("INSERT INTO songs (album, albumartist, artist, disc, title, track, duration, file_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            (song_obj.get_album(),
+                             song_obj.get_albumartist(),
+                             song_obj.get_artist(),
+                             song_obj.get_disc(),
+                             song_obj.get_title(),
+                             song_obj.get_track(),
+                             song_obj.get_duration(),
+                             song_obj.get_file_path()))
+        
         self.conn.commit()
 
     def get_all_songs(self):
         songs = []
         self.cursor.execute("SELECT * FROM songs")
         for i in self.cursor.fetchall():
-            song_obj = Song(i[1], i[2], i[3], i[4], i[5])
+            song_obj = Song(i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8])
             songs.append(song_obj)
         return songs
     

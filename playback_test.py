@@ -20,24 +20,28 @@ if __name__ == "__main__":
         if player.get_current_song():
             break
 
-    print('Now Playing: {} by {}'.format(player.get_current_song().get_title(), player.get_current_song().get_artist()))
+    current_track = player.get_current_song()
+
+    print('''Current track info:
+          Album: {}
+          Album Artist: {}
+          Artist: {}
+          Disc Number: {}
+          Title: {}
+          Track Number: {}
+          Duration: {}
+          File path: {}
+          '''.format(
+              current_track.get_album(),
+              current_track.get_albumartist(),
+              current_track.get_artist(),
+              current_track.get_disc(),
+              current_track.get_title(),
+              current_track.get_track(),
+              current_track.get_duration(),
+              current_track.get_file_path()
+          ))
     
-    time.sleep(5)
-    player.pause()
-    time.sleep(5)
-    player.play()
-    time.sleep(5)
-    player.previous()
-    time.sleep(5)
-    player.skip()
-    time.sleep(5)
-    player.previous()
-    time.sleep(10)
-    player.previous()
-    time.sleep(5)
-    player.stop()
-    time.sleep(5)
-    player.play()
-    time.sleep(5)
+    time.sleep(20)
 
     print('Test complete.')
