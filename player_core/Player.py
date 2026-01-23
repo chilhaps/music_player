@@ -1,6 +1,7 @@
 import threading, queue, soundfile as sf, sounddevice as sd
 
 PREVIOUS_VS_RESTART_THRESHOLD = 0.03
+MAX_TRIES = 3
 
 class Command():
     def __init__(self, ID_str = None, func = None):
@@ -21,6 +22,7 @@ class Player():
         self.current_frame = 0
         self.current_song_length = 0
         self.playback_history = []
+        self.error_count = 0
 
         # Initialize event and queue objects
         self.stop_playback_event = threading.Event()
@@ -43,10 +45,19 @@ class Player():
             if self.stop_playback_event.is_set():
                 self.stop_playback_event.clear()
 
-            self.current_song = self.music_queue.pop(0)
-            audio_data, sample_rate = sf.read(self.current_song.get_file_path(), dtype='float32')
-            self.current_song_length = len(audio_data)
-            data, fs = audio_data, sample_rate
+            try:
+                self.current_song = self.music_queue.pop(0)
+
+                if not self.current_song:
+                    print("Music queue is empty.")
+                    return
+                
+                audio_data, sample_rate = sf.read(self.current_song.get_file_path(), dtype='float32')
+                self.current_song_length = len(audio_data)
+                data, fs = audio_data, sample_rate
+            except Exception as e:
+                print('Playback initialization error: {}'.format(e))
+                return
 
             def callback(outdata, frames, time, status):
                 if status:
@@ -58,21 +69,40 @@ class Player():
                     raise sd.CallbackStop()
                 self.current_frame += chunksize
 
-            stream = sd.OutputStream(
-                samplerate=fs, device=sd.default.device, channels=data.shape[1],
-                callback=callback, finished_callback=self.stop_playback_event.set)
-            with stream:
-                while not self.stop_playback_event.is_set():
-                    if not self.command_queue.empty():
-                        user_command = self.command_queue.get()
-                        print(f"Received command: {user_command}")
-                    else:
-                        user_command = None
-                    
-                    if user_command == self.play_command.get_ID():
-                        sd.sleep(100)
-                    elif user_command in self.command_map:
-                        self.command_map[user_command]()
+            try:
+                stream = sd.OutputStream(
+                    samplerate=fs, device=sd.default.device, channels=data.shape[1],
+                    callback=callback, finished_callback=self.stop_playback_event.set)
+                with stream:
+                    while not self.stop_playback_event.is_set():
+                        if not self.command_queue.empty():
+                            user_command = self.command_queue.get()
+                            print(f"Received command: {user_command}")
+                        else:
+                            user_command = None
+                        
+                        self.error_count = 0
+
+                        if user_command == self.play_command.get_ID():
+                            sd.sleep(100)
+                        elif user_command in self.command_map:
+                            self.command_map[user_command]()
+            except Exception as e:
+                print('Playback error: {}'.format(e))
+
+                if self.error_count < MAX_TRIES:
+                    print('Attempting to reinitialize playback...')
+                    self.error_count += 1
+                    self.command_queue.put(self.play_command.get_ID())
+                    self.stop_playback_event.set()
+                    self.music_queue.insert(0, self.current_song)
+                    self.current_song = None
+                    self.command_queue.put(self.play_command.get_ID())
+                else:
+                    print('Max attampts reached, stopping playback...')
+                    self.command_queue.put(self.stop_command.get_ID())
+
+                return
 
         def pause_action():
             # Called when PAUSE command is detected
