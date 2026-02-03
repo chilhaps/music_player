@@ -52,7 +52,7 @@ class Player():
                     print("Music queue is empty.")
                     return
                 
-                audio_data, sample_rate = sf.read(self.current_song.get_file_path(), dtype='float32')
+                audio_data, sample_rate = sf.read(self.current_song['file_path'], dtype='float32')
                 self.current_song_length = len(audio_data)
                 data, fs = audio_data, sample_rate
             except Exception as e:
@@ -66,6 +66,7 @@ class Player():
                 outdata[:chunksize] = data[self.current_frame:self.current_frame + chunksize]
                 if chunksize < frames:
                     outdata[chunksize:] = 0
+                    self.skip()
                     raise sd.CallbackStop()
                 self.current_frame += chunksize
 
@@ -97,10 +98,10 @@ class Player():
                     self.stop_playback_event.set()
                     self.music_queue.insert(0, self.current_song)
                     self.current_song = None
-                    self.command_queue.put(self.play_command.get_ID())
+                    self.play()
                 else:
                     print('Max attampts reached, stopping playback...')
-                    self.command_queue.put(self.stop_command.get_ID())
+                    self.stop()
 
                 return
 
@@ -124,7 +125,7 @@ class Player():
             self.playback_history.append(self.current_song)
             self.current_song = None
             self.current_frame = 0
-            self.command_queue.put(self.play_command.get_ID())
+            self.play()
 
         def prev_action():
             playback_progress = self.current_frame / self.current_song_length
@@ -136,14 +137,14 @@ class Player():
                 self.music_queue.insert(0, self.current_song)
                 self.current_song = None
                 self.current_frame = 0
-                self.command_queue.put(self.play_command.get_ID())
+                self.play()
             else:
                 print('Playing previous song.')
                 self.stop_playback_event.set()
                 self.music_queue.insert(0, self.playback_history.pop())
                 self.current_song = None
                 self.current_frame = 0
-                self.command_queue.put(self.play_command.get_ID())
+                self.play()
 
 
         def handle_commands():
