@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from db.models import Song, Base
 from tinytag import TinyTag
 import os
+import sqlalchemy as sa
 
 DATABASE_URL = 'sqlite:///library.db'
 
@@ -52,7 +53,7 @@ class Library:
 
     def get_all_songs(self):
         session = Session(bind=self.engine)
-        results = session.query(Song).all()
+        results = session.scalars(sa.select(Song)).all()
         result_dicts = [{column.name: getattr(row, column.name) for column in Song.__table__.columns} for row in results]
         return result_dicts
     
