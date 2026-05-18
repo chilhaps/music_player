@@ -10,7 +10,10 @@ if __name__ == "__main__":
     test_library = Library()
     test_library.initialize_songs_table(test_library_path)
     test_queue = test_library.get_all_songs()
-    print('Total songs in library: {}'.format(len(test_queue)))
+    print('Current queue:')
+    for song in test_queue:
+        print('Title: {}, Artist: {}, Album: {}, Duration: {}'.format(song['title'], song['albumartist'], song['album'], song['duration']))
+    #print('Total songs in library: {}'.format(len(test_queue)))
 
     queue_length = 0
     for song in test_queue:

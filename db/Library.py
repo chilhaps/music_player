@@ -53,7 +53,7 @@ class Library:
 
     def get_all_songs(self):
         session = Session(bind=self.engine)
-        results = session.scalars(sa.select(Song)).all()
+        results = session.scalars(sa.select(Song).order_by(Song.track)).all()
         result_dicts = [{column.name: getattr(row, column.name) for column in Song.__table__.columns} for row in results]
         return result_dicts
     
