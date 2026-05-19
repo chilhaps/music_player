@@ -82,7 +82,7 @@ class Player():
                         else:
                             user_command = None
                         
-                        self.error_count = 0
+                        if self.error_count != 0: self.error_count = 0
 
                         if user_command == self.play_command.get_ID():
                             sd.sleep(100)
