@@ -8,28 +8,19 @@ if __name__ == "__main__":
     test_library_path = os.path.abspath(test_library_path)
 
     test_library = Library()
-    test_library.initialize_songs_table(test_library_path)
-    test_queue = test_library.get_all_songs()
-    print('Current queue:')
-    for song in test_queue:
-        print('Title: {}, Artist: {}, Album: {}, Duration: {}'.format(song['title'], song['albumartist'], song['album'], song['duration']))
-    #print('Total songs in library: {}'.format(len(test_queue)))
 
-    queue_length = 0
-    for song in test_queue:
-        queue_length += float(song['duration'])
+    if Library.get_database_size(test_library) == 0:
+        print("Initializing songs table...")
+        test_library.initialize_songs_table(test_library_path)
 
-    player = Player(test_queue)
-    player.play()
-
-    while True:
-        if player.get_current_song():
-            break
-
-    current_track = player.get_current_song()
-
-    print('Now playing "{}" from "{}" by {}'.format(current_track['title'], current_track['album'], current_track['albumartist']))
+    test_queue = test_library.get_songs_grouped_by_artist()
     
-    time.sleep(queue_length)
+    for artist in test_queue:
+        print(list(artist.items())[0][1])
+
+    Player = Player(list(test_queue[0].items())[0][1])
+    Player.play()
+    time.sleep(100)
+    Player.stop()
 
     print('Test complete.')

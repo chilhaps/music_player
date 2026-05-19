@@ -12,6 +12,11 @@ class Library:
         self.engine = create_engine(DATABASE_URL)
         Base.metadata.create_all(self.engine)
 
+        self.initialized = False
+
+    def is_initialized(self):
+        return self.initialized
+
     def initialize_songs_table(self, library_path=None):
         if not library_path:
             print("No library path provided.")
@@ -33,6 +38,8 @@ class Library:
                 self.add_song(file_path)
             except Exception as e:
                 print(f"Error adding song {file_path}: {e}")
+
+        self.initialized = True
 
     def add_song(self, song_path):
         tag: TinyTag = TinyTag.get(song_path)
@@ -56,6 +63,24 @@ class Library:
         results = session.scalars(sa.select(Song).order_by(Song.track)).all()
         result_dicts = [{column.name: getattr(row, column.name) for column in Song.__table__.columns} for row in results]
         return result_dicts
+
+    def get_songs_grouped_by_artist(self):
+        session = Session(bind=self.engine)
+        artist_groups = session.query(Song.albumartist).order_by(Song.albumartist).distinct().all()
+        result_dicts = []
+        for artist in artist_groups:
+            songs = session.query(Song).filter(Song.albumartist == artist[0]).order_by(Song.album, Song.track).all()
+            song_dicts = [{column.name: getattr(song, column.name) for column in Song.__table__.columns} for song in songs]
+            result_dicts.append({artist[0]: song_dicts})
+            
+        #result_dicts = [{column.name: getattr(row, column.name) for column in Song.__table__.columns} for row in results]
+        return result_dicts
+
+    def get_database_size(self):
+        session = Session(bind=self.engine)
+        count = session.query(Song).count()
+        session.close()
+        return count
     
     '''
     def clear_database(self):
