@@ -88,6 +88,29 @@ class Library:
         #result_dicts = [{column.name: getattr(row, column.name) for column in Song.__table__.columns} for row in results]
         return result_dicts
 
+    def get_remaining_songs_from_album(self, song_path=''):
+        session = Session(bind=self.engine)
+        song = session.query(Song).filter(Song.file_path == song_path).first()
+        if not song:
+            session.close()
+            return []
+        
+        songs = session.query(Song).filter(Song.album == song.album, Song.disc == song.disc, Song.track >= song.track).order_by(Song.track).all()
+        result_dicts = [{column.name: getattr(song, column.name) for column in Song.__table__.columns} for song in songs]
+        session.close()
+        return result_dicts
+
+    def get_song_by_path(self, song_path=''):
+        session = Session(bind=self.engine)
+        result = session.query(Song).filter(Song.file_path == song_path).all()
+        if not result:
+            session.close()
+            return None
+        
+        result_dicts = [{column.name: getattr(row, column.name) for column in Song.__table__.columns} for row in result]
+        session.close()
+        return result_dicts
+
     def get_database_size(self):
         session = Session(bind=self.engine)
         count = session.query(Song).count()
