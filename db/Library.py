@@ -69,9 +69,21 @@ class Library:
         artist_groups = session.query(Song.albumartist).order_by(Song.albumartist).distinct().all()
         result_dicts = []
         for artist in artist_groups:
-            songs = session.query(Song).filter(Song.albumartist == artist[0]).order_by(Song.album, Song.track).all()
+            songs = session.query(Song).filter(Song.albumartist == artist[0]).order_by(Song.album, Song.disc, Song.track).all()
             song_dicts = [{column.name: getattr(song, column.name) for column in Song.__table__.columns} for song in songs]
             result_dicts.append({artist[0]: song_dicts})
+            
+        #result_dicts = [{column.name: getattr(row, column.name) for column in Song.__table__.columns} for row in results]
+        return result_dicts
+
+    def get_songs_grouped_custom(self, sort_value):
+        session = Session(bind=self.engine)
+        groups = session.query(getattr(Song, sort_value)).order_by(getattr(Song, sort_value)).distinct().all()
+        result_dicts = []
+        for group in groups:
+            songs = session.query(Song).filter(getattr(Song, sort_value) == group[0]).order_by(Song.album, Song.disc, Song.track).all()
+            song_dicts = [{column.name: getattr(song, column.name) for column in Song.__table__.columns} for song in songs]
+            result_dicts.append({group[0]: song_dicts})
             
         #result_dicts = [{column.name: getattr(row, column.name) for column in Song.__table__.columns} for row in results]
         return result_dicts
