@@ -15,12 +15,17 @@ if __name__ == "__main__":
 
     test_queue = test_library.get_songs_grouped_by_artist()
     
-    for artist in test_queue:
-        print(list(artist.items())[0][1])
+    '''for artist in test_queue:
+        print(list(artist.items())[0][1])'''
 
     Player = Player(list(test_queue[0].items())[0][1])
+    # Player.enqueue_songs(list(test_queue[1].items())[0][1])
     Player.play()
-    time.sleep(100)
+    while Player.current_state is None:
+        time.sleep(0.1)
+    print(f'Playing {Player.get_current_song()["title"]} by {Player.get_current_song()["artist"]}...')
+    time.sleep(10)
     Player.stop()
+    time.sleep(10)
 
     print('Test complete.')
