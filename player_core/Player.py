@@ -1,11 +1,15 @@
-from player_core.states import PlayerPlayState, PlayerPauseState, PlayerStopState, PlayerSkipState, PlayerPrevState
-import threading, queue, soundfile as sf, sounddevice as sd
+from player_core.states.PlayerPauseState import PlayerPauseState
+from player_core.states.PlayerPlayState import PlayerPlayState
+from player_core.states.PlayerStopState import PlayerStopState
+from player_core.states.PlayerSkipState import PlayerSkipState
+from player_core.states.PlayerPrevState import PlayerPrevState
+import threading, queue
 
 PREVIOUS_VS_RESTART_THRESHOLD = 0.03
 MAX_TRIES = 3
 
 class Player():
-    def __init__(self, music_queue=None):
+    def __init__(self, music_queue=[]):
         # Initialize playback variables
         self.music_queue = music_queue
         self.current_song = None
@@ -18,133 +22,33 @@ class Player():
         self.stop_playback_event = threading.Event()
         self.state_queue = queue.Queue()
 
-        self.play_state = PlayerPlayState(self)
-        self.pause_state = PlayerPauseState(self)
-        self.stop_state = PlayerStopState(self)
-        self.skip_state = PlayerSkipState(self)
-        self.prev_state = PlayerPrevState(self)
+        self.context = {
+            "previous_vs_restart_threshold": PREVIOUS_VS_RESTART_THRESHOLD,
+            "max_tries": MAX_TRIES,
+            "music_queue": self.music_queue,
+            "current_song": self.current_song,
+            "current_frame": self.current_frame,
+            "current_song_length": self.current_song_length,
+            "playback_history": self.playback_history,
+            "error_count": self.error_count,
+            "stop_playback_event": self.stop_playback_event,
+            "state_queue": self.state_queue
+        }
+
+        self.play_state = PlayerPlayState(self.context)
+        self.pause_state = PlayerPauseState(self.context)
+        self.stop_state = PlayerStopState(self.context)
+        self.skip_state = PlayerSkipState(self.context)
+        self.prev_state = PlayerPrevState(self.context)
 
         self.current_state = None
-        
-        def play_action():
-            # Called when PLAY command is detected
-            if not self.music_queue:
-                print("Music queue is empty.")
-                return
-            
-            if self.stop_playback_event.is_set():
-                self.stop_playback_event.clear()
-
-            try:
-                self.current_song = self.music_queue.pop(0)
-
-                if not self.current_song:
-                    print("Music queue is empty.")
-                    return
-                
-                audio_data, sample_rate = sf.read(self.current_song['file_path'], dtype='float32')
-                self.current_song_length = len(audio_data)
-                data, fs = audio_data, sample_rate
-            except Exception as e:
-                print('Playback initialization error: {}'.format(e))
-                return
-
-            def callback(outdata, frames, time, status):
-                if status:
-                    print(status)
-                chunksize = min(len(data) - self.current_frame, frames)
-                outdata[:chunksize] = data[self.current_frame:self.current_frame + chunksize]
-                if chunksize < frames:
-                    outdata[chunksize:] = 0
-                    self.skip()
-                    raise sd.CallbackStop()
-                self.current_frame += chunksize
-
-            try:
-                stream = sd.OutputStream(
-                    samplerate=fs, device=sd.default.device, channels=data.shape[1],
-                    callback=callback, finished_callback=self.stop_playback_event.set)
-                with stream:
-                    while not self.stop_playback_event.is_set():
-                        if not self.state_queue.empty():
-                            self.current_state = self.state_queue.get()
-                            print(f"Received state: {self.current_state.get_ID()}")
-                        else:
-                            self.current_state = None
-                            continue
-                        
-                        if self.error_count != 0: self.error_count = 0
-
-                        try:
-                            if self.current_state is not None and self.current_state.get_ID() != "PLAY":
-                                self.current_state.execute()
-                        except Exception as e:
-                            print(f"Error executing state {self.current_state.get_ID()}: {e}")
-            except Exception as e:
-                print('Playback error: {}'.format(e))
-
-                if self.error_count < MAX_TRIES:
-                    print('Attempting to reinitialize playback...')
-                    self.error_count += 1
-                    self.command_queue.put(self.play_command.get_ID())
-                    self.stop_playback_event.set()
-                    self.music_queue.insert(0, self.current_song)
-                    self.current_song = None
-                    self.play()
-                else:
-                    print('Max attampts reached, stopping playback...')
-                    self.stop()
-
-                return
-
-        def pause_action():
-            # Called when PAUSE command is detected
-            self.stop_playback_event.set()
-            self.music_queue.insert(0, self.current_song)
-            self.current_song = None
-
-        def stop_action():
-            # Called when STOP command is detected
-            self.stop_playback_event.set()
-            self.music_queue = []
-            self.current_song = None
-            self.current_frame = 0
-            self.playback_history = []
-
-        def skip_action():
-            # Called when SKIP command is detected
-            self.stop_playback_event.set()
-            self.playback_history.append(self.current_song)
-            self.current_song = None
-            self.current_frame = 0
-            self.play()
-
-        def prev_action():
-            playback_progress = self.current_frame / self.current_song_length
-            print('Playback progress: {}'.format(playback_progress))
-            
-            if len(self.playback_history) == 0 or playback_progress > PREVIOUS_VS_RESTART_THRESHOLD:
-                print('Restarting current song.')
-                self.stop_playback_event.set()
-                self.music_queue.insert(0, self.current_song)
-                self.current_song = None
-                self.current_frame = 0
-                self.play()
-            else:
-                print('Playing previous song.')
-                self.stop_playback_event.set()
-                self.music_queue.insert(0, self.playback_history.pop())
-                self.current_song = None
-                self.current_frame = 0
-                self.play()
-
 
         def handle_queued_states():
             # Handle queued states
             while True:
                 if not self.state_queue.empty():
                     self.current_state = self.state_queue.get()
-                    print(f"Received state: {self.current_state.get_ID()}")
+                    print(f"Entering state: {self.current_state.get_ID()}")
                 else:
                     self.current_state = None
                     continue
@@ -180,4 +84,4 @@ class Player():
             self.music_queue.append(song)
     
     def get_current_song(self):
-        return self.current_song
+        return self.context["current_song"]
