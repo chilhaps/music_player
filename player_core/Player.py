@@ -1,21 +1,11 @@
+from player_core.states import PlayerPlayState, PlayerPauseState, PlayerStopState, PlayerSkipState, PlayerPrevState
 import threading, queue, soundfile as sf, sounddevice as sd
 
 PREVIOUS_VS_RESTART_THRESHOLD = 0.03
 MAX_TRIES = 3
 
-class Command():
-    def __init__(self, ID_str = None, func = None):
-        self.ID_str = ID_str
-        self.func = func
-
-    def get_ID(self):
-        return self.ID_str
-    
-    def get_func(self):
-        return self.func
-
 class Player():
-    def __init__(self, music_queue):
+    def __init__(self, music_queue=None):
         # Initialize playback variables
         self.music_queue = music_queue
         self.current_song = None
@@ -26,15 +16,15 @@ class Player():
 
         # Initialize event and queue objects
         self.stop_playback_event = threading.Event()
-        self.command_queue = queue.Queue()
+        self.state_queue = queue.Queue()
 
-        # Initialize command and command map objects
-        self.play_command = Command()
-        self.pause_command = Command()
-        self.stop_command = Command()
-        self.skip_command = Command()
-        self.prev_command = Command()
-        self.command_map = {}
+        self.play_state = PlayerPlayState(self)
+        self.pause_state = PlayerPauseState(self)
+        self.stop_state = PlayerStopState(self)
+        self.skip_state = PlayerSkipState(self)
+        self.prev_state = PlayerPrevState(self)
+
+        self.current_state = None
         
         def play_action():
             # Called when PLAY command is detected
@@ -76,18 +66,20 @@ class Player():
                     callback=callback, finished_callback=self.stop_playback_event.set)
                 with stream:
                     while not self.stop_playback_event.is_set():
-                        if not self.command_queue.empty():
-                            user_command = self.command_queue.get()
-                            print(f"Received command: {user_command}")
+                        if not self.state_queue.empty():
+                            self.current_state = self.state_queue.get()
+                            print(f"Received state: {self.current_state.get_ID()}")
                         else:
-                            user_command = None
+                            self.current_state = None
+                            continue
                         
                         if self.error_count != 0: self.error_count = 0
 
-                        if user_command == self.play_command.get_ID():
-                            sd.sleep(100)
-                        elif user_command in self.command_map:
-                            self.command_map[user_command]()
+                        try:
+                            if self.current_state is not None and self.current_state.get_ID() != "PLAY":
+                                self.current_state.execute()
+                        except Exception as e:
+                            print(f"Error executing state {self.current_state.get_ID()}: {e}")
             except Exception as e:
                 print('Playback error: {}'.format(e))
 
@@ -147,59 +139,45 @@ class Player():
                 self.play()
 
 
-        def handle_commands():
-            # Define commands
-            self.play_command = Command('PLAY', play_action)
-            self.pause_command = Command('PAUSE', pause_action)
-            self.stop_command = Command('STOP', stop_action)
-            self.skip_command = Command('SKIP', skip_action)
-            self.prev_command = Command('PREV', prev_action)
-
-            # Map command IDs to action functions
-            self.command_map = {
-                self.play_command.get_ID(): self.play_command.get_func(),
-                self.pause_command.get_ID(): self.pause_command.get_func(),
-                self.stop_command.get_ID(): self.stop_command.get_func(),
-                self.skip_command.get_ID():self.skip_command.get_func(),
-                self.prev_command.get_ID():self.prev_command.get_func()
-            }
-
-            # Handle queued commands
+        def handle_queued_states():
+            # Handle queued states
             while True:
-                if not self.command_queue.empty():
-                    user_command = self.command_queue.get()
-                    print(f"Received command: {user_command}")
+                if not self.state_queue.empty():
+                    self.current_state = self.state_queue.get()
+                    print(f"Received state: {self.current_state.get_ID()}")
                 else:
-                    user_command = None
+                    self.current_state = None
+                    continue
 
-                if user_command in self.command_map:
-                    self.command_map[user_command]()
-                elif user_command:
-                    print('Invalid command: {}'.format(user_command))
-                else:
-                    pass
+                try:
+                    self.current_state.execute()
+                except Exception as e:
+                    print(f"Error executing state {self.current_state.get_ID()}: {e}")
 
-        # Start command handler thread
-        self.handler_thread = threading.Thread(target=handle_commands)
+        # Start state handler thread
+        self.handler_thread = threading.Thread(target=handle_queued_states)
         self.handler_thread.daemon = True
         self.handler_thread.start()
 
-    # Define methods to push each command ID to queue
+    # Define methods to push each state to queue
     def play(self):
-        self.command_queue.put(self.play_command.get_ID())
+        self.state_queue.put(self.play_state)
 
     def stop(self):
-        self.command_queue.put(self.stop_command.get_ID())
+        self.state_queue.put(self.stop_state)
 
     def pause(self):
-        self.command_queue.put(self.pause_command.get_ID())
+        self.state_queue.put(self.pause_state)
 
     def skip(self):
-        self.command_queue.put(self.skip_command.get_ID())
+        self.state_queue.put(self.skip_state)
 
     def previous(self):
-        self.command_queue.put(self.prev_command.get_ID())
+        self.state_queue.put(self.prev_state)
+
+    def enqueue_songs(songs):
+        for song in songs:
+            self.music_queue.append(song)
     
-    # Getters
     def get_current_song(self):
         return self.current_song
