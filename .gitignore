@@ -1,4 +1,4 @@
 player_core/__pycache__/*
 player_core/states/__pycache__/*
 db/__pycache__/*
-library.db
+db/*.db
