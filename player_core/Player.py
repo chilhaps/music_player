@@ -1,8 +1,4 @@
-from player_core.states.PlayerPauseState import PlayerPauseState
-from player_core.states.PlayerPlayState import PlayerPlayState
-from player_core.states.PlayerStopState import PlayerStopState
-from player_core.states.PlayerSkipState import PlayerSkipState
-from player_core.states.PlayerPrevState import PlayerPrevState
+from PlayerStates import *
 import threading, queue
 
 PREVIOUS_VS_RESTART_THRESHOLD = 0.03
